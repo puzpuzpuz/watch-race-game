@@ -83,12 +83,13 @@ The heap check runs Node with `--jitless`: V8's optimizing compiler grows and sh
 ### Art
 
 ```sh
-npm run assets         # needs Python 3 with Pillow
+pip install pillow pyoxipng
+npm run assets
 ```
 
 This runs `tools/sprites.py`, which draws every picture except the road, and `tools/road.py`, which draws the 42 road frames. The road frames use the camera constants in `src/common/js/projection.js`, so sprites placed by the game stand on the drawn road. After changing the camera, rerun it.
 
-Pictures are drawn at half resolution and doubled, which gives the 2x2 "fat pixels" of the art style. They're snapped to the palette in the spec and saved as 8-bit palette PNGs. Road objects are saved at 12 sizes, so the game never resizes a picture at run time.
+Pictures are drawn at half resolution and doubled, which gives the 2x2 "fat pixels" of the art style. They're snapped to the palette in the spec, saved as 8-bit palette PNGs (4-bit for the smallest palettes) and recompressed losslessly with [oxipng](https://github.com/shssoichiro/oxipng), which takes about 15% off. Road objects are saved at 12 sizes, so the game never resizes a picture at run time.
 
 Generator art lives in `art/raw/<name>.png`; a picture without a file there is drawn by the script instead. To replace one, save the new picture under the same name and run `npm run assets`. The script crops the picture and fits it to its frame, adds a dark outline where the picture lacks one, and makes the variant frames itself. Pixel art drawn at the frame's half-resolution size (the sizes below, halved) is used pixel for pixel, on a transparent background or flat magenta (#ff00ff). Larger painted art on magenta is keyed and shrunk to fit. SPEC.md has a prompt for each picture under Sprite production.
 

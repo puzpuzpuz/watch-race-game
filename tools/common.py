@@ -1,18 +1,24 @@
 """Shared helpers for tools/sprites.py and tools/road.py: the projection
 constants read from the game's code, the palette, the pixel fonts, the palm
 art, and the clean-up steps every picture goes through (magenta key, palette
-snap, outline, 2x fat pixels, 8-bit palette PNG).
+snap, outline, 2x fat pixels, 8-bit palette PNG squeezed by oxipng).
 
 Sprites are drawn, or scaled from generator art, at half resolution and then
 doubled with nearest-neighbour, which gives the art's 2x2 "fat pixels".
 """
 
+import io
 import math
 import re
 from collections import Counter
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
+
+try:
+    import oxipng
+except ImportError:
+    raise SystemExit("The art scripts need pyoxipng: pip install pyoxipng")
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "src" / "common" / "assets"
@@ -363,8 +369,9 @@ def build_palette(img, extra):
 
 
 def save_png(img, path, extra=24):
-    """Snaps `img` to the palette and saves it as an 8-bit palette PNG. Index 0
-    is transparent and index 1 the half-transparent shadow tone."""
+    """Snaps `img` to the palette and saves it as an 8-bit palette PNG, with
+    clear and the half-transparent shadow tone as its first two colours. oxipng
+    then drops the colours the picture doesn't use and may reorder the rest."""
     img = img.convert("RGBA")
     palette = build_palette(img, extra)
     cache = {}
@@ -386,8 +393,26 @@ def save_png(img, path, extra=24):
     for p in palette:
         flat.extend(p)
     out.putpalette(flat)
+    buf = io.BytesIO()
+    out.save(buf, "PNG", transparency=bytes([0, SHADOW[3]] + [255] * len(palette)))
     path.parent.mkdir(parents=True, exist_ok=True)
-    out.save(path, transparency=bytes([0, SHADOW[3]] + [255] * len(palette)), optimize=True)
+    path.write_bytes(squeeze(buf.getvalue()))
+
+
+def squeeze(png):
+    """Recompresses a PNG losslessly: oxipng drops unused palette colours and
+    tries every row filter, about 15% off Pillow's best. The colour type and
+    bit depth stay as Pillow wrote them (palette, 8-bit or 4-bit): letting
+    oxipng lower them saves only 1.6% more, with 1- and 2-bit and greyscale
+    PNGs the game doesn't use yet."""
+    return oxipng.optimize_from_memory(
+        png,
+        level=6,
+        bit_depth_reduction=False,
+        color_type_reduction=False,
+        grayscale_reduction=False,
+        strip=oxipng.StripChunks.safe(),
+    )
 
 
 def save_jpg(img, path):
