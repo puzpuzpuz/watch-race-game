@@ -77,7 +77,7 @@ The heap check runs Node with `--jitless`: V8's optimizing compiler grows and sh
 
 `src/common/js/config.js` holds the build-time switches:
 
-- **`DEBUG`** (on in this version): shows frames per second and the longest frame of the last second during a race. The title screen also gets quarter circles of 60 to 140 px in each corner, to measure the screen's corner radius, and shows the last tap's position under the build name.
+- **`DEBUG`** (off by default): shows frames per second and the longest frame of the last second during a race. The title screen also gets quarter circles of 60 to 140 px in each corner, to measure the screen's corner radius, and shows the last tap's position under the build name.
 - **`STYLE_MODE`**: moved sprites take turns between two preallocated style objects. Set it to `'fresh'` if sprites stop moving on the watch.
 - **`PRELOAD`**: shows every road picture once on the loading screen, so the first race doesn't stutter.
 

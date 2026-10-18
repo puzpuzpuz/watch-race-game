@@ -1,8 +1,9 @@
 // Build-time switches for the first game build.
 
 // Shows the fps readout (frames per second and the longest frame of the last
-// second) during the race, and the corner-radius guides on the title screen.
-export const DEBUG = true
+// second) during the race, and on the title screen the corner-radius guides,
+// the build name and the last tap's position.
+export const DEBUG = false
 
 // How a moved sprite gets its new {left, top} style object:
 //   'alternate'  two preallocated objects per sprite, used in turn (no garbage)
