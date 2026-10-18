@@ -1,0 +1,409 @@
+<template>
+  <!-- The watch has no z-index: page order is drawing order. -->
+  <stack class="page">
+    <image class="sky" src="/common/assets/bg/bg_sky.png"></image>
+    <image class="city" src="/common/assets/bg/bg_city.png" style="{{cityStyle}}"></image>
+    <image id="road" class="road" src="{{roadSrc}}"></image>
+    <image for="{{back}}" tid="k" class="obj" src="{{$item.src}}" style="{{$item.s}}" show="{{$item.on}}"></image>
+    <div id="carg" class="carg" style="{{carStyle}}">
+      <div id="carj" class="carj">
+        <image class="car" src="{{carSrc}}" show="{{carOn}}"></image>
+        <image class="flame" src="{{flameSrc}}" show="{{flameOn}}"></image>
+        <image class="smoke" src="{{smokeSrc}}" show="{{smokeOn}}"></image>
+        <image class="spark" src="{{sparkSrc}}" show="{{sparkOn}}"></image>
+      </div>
+    </div>
+    <image for="{{front}}" tid="k" class="obj" src="{{$item.src}}" style="{{$item.s}}" show="{{$item.on}}"></image>
+    <image id="popup" class="obj" src="{{popSrc}}" style="{{popStyle}}" show="{{popOn}}"></image>
+
+    <image class="hud score-label" src="/common/assets/hud/words_score.png"></image>
+    <image for="{{score}}" tid="k" class="digit" src="{{$item.src}}" style="{{$item.s}}"></image>
+    <image for="{{speed}}" tid="k" class="digit" src="{{$item.src}}" style="{{$item.s}}"></image>
+    <image class="hud kmh" src="/common/assets/hud/words_kmh.png"></image>
+    <image class="pump" src="/common/assets/hud/hud_icons_0.png"></image>
+    <image for="{{fuel}}" tid="k" class="gauge" src="{{$item.src}}" style="{{$item.s}}"></image>
+    <image for="{{lives}}" tid="k" class="heart" src="{{$item.src}}" style="{{$item.s}}"></image>
+    <image for="{{dist}}" tid="k" class="digit" src="{{$item.src}}" style="{{$item.s}}"></image>
+    <image class="hud km" src="/common/assets/hud/words_km.png"></image>
+    <image class="boost" src="{{boostSrc}}"></image>
+    <image class="obj" src="{{headSrc}}" style="{{headStyle}}" show="{{headOn}}"></image>
+
+    <div class="dim" show="{{paused}}"></div>
+    <image class="hud paused" src="/common/assets/hud/words_paused.png" show="{{paused}}"></image>
+    <image class="hud tap-go" src="/common/assets/hud/words_taptogo.png" show="{{paused}}"></image>
+
+    <block if="{{view === 'title'}}">
+      <image class="full" src="/common/assets/screens/title_bg.jpg"></image>
+      <image class="logo" src="/common/assets/screens/logo.png"></image>
+      <image class="hud title-best" src="/common/assets/hud/words_best.png"></image>
+      <image for="{{titleBest}}" tid="k" class="digit" src="{{$item.src}}" style="{{$item.s}}"></image>
+      <image class="hud title-tap" src="/common/assets/hud/words_taptostart.png" show="{{tapOn}}"></image>
+      <image if="{{debug}}" class="full" src="/common/assets/screens/corners.png"></image>
+      <text if="{{debug}}" class="info">{{build}}</text>
+    </block>
+
+    <block if="{{view === 'results'}}">
+      <image class="full" src="/common/assets/screens/results_bg.jpg"></image>
+      <image class="obj" src="{{resHeadSrc}}" style="{{resHeadStyle}}"></image>
+      <image class="hud res-score" src="/common/assets/hud/words_score.png"></image>
+      <image for="{{resScore}}" tid="k" class="digit" src="{{$item.src}}" style="{{$item.s}}"></image>
+      <image class="hud res-distance" src="/common/assets/hud/words_distance.png"></image>
+      <image for="{{resDist}}" tid="k" class="digit" src="{{$item.src}}" style="{{$item.s}}"></image>
+      <image class="hud res-km" src="/common/assets/hud/words_km.png"></image>
+      <image class="hud res-best" src="/common/assets/hud/words_best.png"></image>
+      <image for="{{resBest}}" tid="k" class="digit" src="{{$item.src}}" style="{{$item.s}}"></image>
+      <image class="hud res-new" src="/common/assets/hud/words_newbest.png" show="{{newBestOn}}"></image>
+      <image class="hud res-tap" src="/common/assets/hud/words_taptostart.png" show="{{tapOn}}"></image>
+    </block>
+
+    <block if="{{view === 'load'}}">
+      <div class="cover"></div>
+      <image class="logo load-logo" src="/common/assets/screens/logo.png"></image>
+    </block>
+
+    <text if="{{debug && view === 'race'}}" class="fps">{{fpsText}}</text>
+
+    <!-- Every tap lands here, on top of everything. -->
+    <div class="catch" ontouchstart="onTouch"></div>
+  </stack>
+</template>
+
+<script>
+import storage from '@system.storage'
+import BUILD from '../../common/js/buildinfo.js'
+import { DEBUG } from '../../common/js/config.js'
+import { initialData } from '../../common/js/renderer.js'
+import { Runner } from '../../common/js/runner.js'
+
+// The page is a thin host: the game, its loop and the renderer live in
+// common/js and run the same in the desktop harness.
+
+// Both are optional: without Folme the car moves by its style instead.
+let folme = null
+let brightness = null
+try {
+  folme = require('@system.folme')
+} catch (e) {
+  folme = null
+}
+try {
+  brightness = require('@system.brightness')
+} catch (e) {
+  brightness = null
+}
+const BEST_KEY = 'bestScore'
+
+function loadBest(done) {
+  storage.get({
+    key: BEST_KEY,
+    success: (data) => done(data),
+    fail: () => done(null)
+  })
+}
+
+function saveBest(value) {
+  storage.set({ key: BEST_KEY, value: value })
+}
+
+function keepScreenOn(on) {
+  if (brightness && typeof brightness.setKeepScreenOn === 'function') {
+    brightness.setKeepScreenOn({ keepScreenOn: on })
+  }
+}
+
+export default {
+  private: Object.assign(initialData(), { debug: DEBUG, build: BUILD }),
+
+  onInit() {
+    this.runner = new Runner({
+      vm: this,
+      folme: folme && typeof folme.to === 'function' ? folme : null,
+      loadBest: loadBest,
+      saveBest: saveBest,
+      keepScreenOn: keepScreenOn
+    })
+  },
+
+  onReady() {
+    this.runner.start()
+  },
+
+  onShow() {
+    this.runner.show()
+  },
+
+  // Leaving the app or turning the screen off pauses the race.
+  onHide() {
+    this.runner.hide()
+  },
+
+  // Clears the loop timer, as Xiaomi's memory guide asks.
+  onDestroy() {
+    this.runner.destroy()
+  },
+
+  // touchstart fires earlier than click, which matters for dodging.
+  onTouch(evt) {
+    const list = evt && (evt.changedTouches || evt.touches)
+    const t = (list && list[0]) || evt
+    if (t && typeof t.clientX === 'number') this.runner.touch(t.clientX, t.clientY)
+  }
+}
+</script>
+
+<style>
+.page {
+  width: 432px;
+  height: 514px;
+  background-color: #03070d;
+}
+
+.sky {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 432px;
+  height: 190px;
+}
+
+/* 1296 px: the tile, its mirror and the tile again; slides by its style. */
+.city {
+  position: absolute;
+  left: 0px;
+  top: 80px;
+  width: 1296px;
+  height: 110px;
+}
+
+/* Half-resolution frames shown at 2x. */
+.road {
+  position: absolute;
+  left: 0px;
+  top: 190px;
+  width: 432px;
+  height: 324px;
+  object-fit: fill;
+}
+
+/* Sprites, words and headlines keep each picture's own size. */
+.obj,
+.hud {
+  position: absolute;
+}
+
+/* The car group: Folme slides it between lanes (translateX) and the inner
+   group jolts on hits (translateY). The car sits at y 360-440. */
+.carg {
+  position: absolute;
+  left: 144px;
+  top: 330px;
+  width: 144px;
+  height: 124px;
+}
+
+.carj {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 144px;
+  height: 124px;
+}
+
+.car {
+  position: absolute;
+  left: 0px;
+  top: 30px;
+  width: 144px;
+  height: 80px;
+}
+
+.flame {
+  position: absolute;
+  left: 48px;
+  top: 88px;
+  width: 48px;
+  height: 24px;
+}
+
+.smoke {
+  position: absolute;
+  left: 56px;
+  top: 6px;
+  width: 32px;
+  height: 32px;
+}
+
+.spark {
+  position: absolute;
+  left: 48px;
+  top: 0px;
+  width: 48px;
+  height: 48px;
+}
+
+.digit {
+  position: absolute;
+  width: 16px;
+  height: 22px;
+}
+
+.gauge {
+  position: absolute;
+  width: 8px;
+  height: 18px;
+}
+
+.heart {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+}
+
+.score-label {
+  left: 44px;
+  top: 36px;
+}
+
+.kmh {
+  left: 96px;
+  top: 92px;
+}
+
+.pump {
+  position: absolute;
+  left: 260px;
+  top: 36px;
+  width: 24px;
+  height: 24px;
+}
+
+.km {
+  left: 202px;
+  top: 480px;
+}
+
+.boost {
+  position: absolute;
+  left: 264px;
+  top: 444px;
+  width: 104px;
+  height: 48px;
+}
+
+.dim {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 432px;
+  height: 514px;
+  background-color: rgba(3, 7, 13, 0.55);
+}
+
+.paused {
+  left: 178px;
+  top: 220px;
+}
+
+.tap-go {
+  left: 160px;
+  top: 252px;
+}
+
+.full {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 432px;
+  height: 514px;
+}
+
+.logo {
+  position: absolute;
+  left: 36px;
+  top: 34px;
+  width: 360px;
+  height: 120px;
+}
+
+.title-best {
+  left: 135px;
+  top: 178px;
+}
+
+.title-tap {
+  left: 142px;
+  top: 470px;
+}
+
+.info {
+  position: absolute;
+  left: 116px;
+  top: 206px;
+  width: 200px;
+  font-size: 16px;
+  color: #f5fcfd;
+  text-align: center;
+}
+
+.res-score {
+  left: 185px;
+  top: 160px;
+}
+
+.res-distance {
+  left: 166px;
+  top: 230px;
+}
+
+.res-km {
+  left: 244px;
+  top: 256px;
+}
+
+.res-best {
+  left: 190px;
+  top: 300px;
+}
+
+.res-new {
+  left: 166px;
+  top: 362px;
+}
+
+.res-tap {
+  left: 142px;
+  top: 440px;
+}
+
+.cover {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 432px;
+  height: 514px;
+  background-color: #03070d;
+}
+
+.load-logo {
+  top: 197px;
+}
+
+.fps {
+  position: absolute;
+  left: 126px;
+  top: 6px;
+  width: 180px;
+  font-size: 16px;
+  color: #f5fcfd;
+  background-color: #03070d;
+  text-align: center;
+}
+
+.catch {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 432px;
+  height: 514px;
+}
+</style>

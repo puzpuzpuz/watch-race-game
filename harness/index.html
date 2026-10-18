@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Miami Rush harness</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #11151c;
+        color: #d8dee9;
+        font: 14px/1.4 system-ui, sans-serif;
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      #frame {
+        transform-origin: top left;
+      }
+      /* The watch screen: 432x514, page order is drawing order. */
+      .page {
+        position: relative;
+        width: 432px;
+        height: 514px;
+        overflow: hidden;
+        user-select: none;
+        image-rendering: pixelated;
+      }
+      .page.round {
+        border-radius: 110px;
+      }
+      .page img,
+      .page div,
+      .page span {
+        position: absolute;
+        display: block;
+      }
+      .page .layer {
+        left: 0;
+        top: 0;
+        width: 432px;
+        height: 514px;
+        pointer-events: none;
+      }
+      .page .text {
+        font-family: system-ui, sans-serif;
+        white-space: nowrap;
+      }
+      aside {
+        min-width: 260px;
+        max-width: 360px;
+      }
+      aside h1 {
+        font-size: 18px;
+        margin: 0 0 8px;
+      }
+      aside pre {
+        background: #1b212b;
+        padding: 8px;
+        border-radius: 6px;
+        white-space: pre-wrap;
+      }
+      aside button,
+      aside input {
+        font: inherit;
+        margin: 2px 4px 2px 0;
+      }
+      kbd {
+        background: #2a3240;
+        border-radius: 3px;
+        padding: 0 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="frame"><div id="stage" class="page"></div></div>
+    <aside>
+      <h1>Miami Rush harness</h1>
+      <p>
+        Click the left or right half to change lanes, the bottom-right corner to boost. Keys:
+        <kbd>←</kbd> <kbd>→</kbd> lanes, <kbd>Space</kbd> boost, <kbd>Enter</kbd> tap, <kbd>P</kbd> hide and show
+        the app (pause).
+      </p>
+      <p>
+        <button id="zoom">Zoom 2x</button>
+        <button id="round">Round corners</button>
+        <button id="pause">Hide app</button>
+      </p>
+      <p>
+        Seed <input id="seed" size="12" placeholder="random" />
+        <button id="useSeed">Use for next runs</button>
+      </p>
+      <pre id="info"></pre>
+    </aside>
+    <script type="module" src="/harness/harness.js"></script>
+  </body>
+</html>

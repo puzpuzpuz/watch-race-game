@@ -1,0 +1,23 @@
+{
+  "name": "miami-rush",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Miami Rush: an endless pseudo-3D racer for the Redmi Watch 6",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/puzpuzpuz/watch-race-game.git"
+  },
+  "scripts": {
+    "build": "node scripts/build.js release",
+    "build:debug": "node scripts/build.js debug",
+    "assets": "python3 tools/sprites.py && python3 tools/road.py",
+    "test": "node --expose-gc --jitless --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test test/*.test.mjs",
+    "harness": "node harness/serve.js",
+    "start": "aiot start --watch"
+  },
+  "devDependencies": {
+    "@aiot-toolkit/jsc": "1.0.9",
+    "aiot-toolkit": "2.0.5"
+  }
+}

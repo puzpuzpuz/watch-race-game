@@ -1,0 +1,27 @@
+{
+  "package": "com.miamirush.game",
+  "name": "Miami Rush",
+  "versionName": "0.1.0",
+  "versionCode": 1,
+  "minPlatformVersion": 1200,
+  "icon": "/common/assets/icon.png",
+  "deviceTypeList": ["watch"],
+  "features": [
+    { "name": "system.router" },
+    { "name": "system.storage" },
+    { "name": "system.brightness" },
+    { "name": "system.folme" }
+  ],
+  "config": {
+    "logLevel": "off",
+    "designWidth": 432
+  },
+  "router": {
+    "entry": "pages/game",
+    "pages": {
+      "pages/game": {
+        "component": "game"
+      }
+    }
+  }
+}
