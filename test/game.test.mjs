@@ -1,5 +1,5 @@
 // Game rules: speed, lanes, boost, hits, pickups, rivals, fuel, run endings
-// and pausing (see the spec's Game rules and Controls).
+// and pausing.
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'

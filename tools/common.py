@@ -65,7 +65,7 @@ def hexrgb(h):
     return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
 
 
-# The palette from the spec's Art direction table.
+# The base palette, which every picture snaps to (see save_png).
 SKY = hexrgb("#6bdeec")
 WATER = hexrgb("#50adb0")
 SAND = hexrgb("#f0e0aa")

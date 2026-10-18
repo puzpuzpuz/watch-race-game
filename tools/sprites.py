@@ -2,9 +2,9 @@
 into src/common/assets/, and writes src/common/js/gen/art.js with the sizes
 the game needs to place them.
 
-Pictures marked "generator" in the spec's sprite list are taken from
-art/raw/<name>.png when that file exists (see README.md for the names), and
-otherwise drawn here as placeholders. Either way they go through the same
+Generator pictures (README.md's Art section lists their names) are taken
+from art/raw/<name>.png when that file exists, and otherwise drawn here as
+placeholders. Either way they go through the same
 clean-up: magenta key, fit to the frame at half resolution, palette snap,
 outline, 2x fat pixels. Text and HUD shapes are always drawn here.
 

@@ -44,7 +44,7 @@ export const BANNER_SEG = 3 // the start gantry, just ahead of the car
 export const CURVE_FROM = 2 // the road picture follows the mean curve over these
 export const CURVE_SPAN = 20 // segments ahead of the camera
 
-// Fairness rules (see the spec's Track generation).
+// Fairness rules: a way through every row, and few enough sprites on screen.
 export const CAP = 4 // objects on screen at once
 export const CAP_SPAN = 64 // ... within any 64 segments
 export const ROW_GAP = 14 // rows at least this far apart

@@ -1,8 +1,9 @@
-// No allocating code on the frame path (see the spec's Memory and garbage
-// collection): the source of every function a race frame runs is checked for
-// object and array literals, closures, spread, template strings, string
-// building, and the allocating array and JSON methods. V8 can't measure this
-// directly: its interpreter allocates for numbers that QuickJS doesn't.
+// No allocating code on the frame path, since a garbage collection pause in
+// QuickJS shows as a stutter: the source of every function a race frame runs
+// is checked for object and array literals, closures, spread, template
+// strings, string building, and the allocating array and JSON methods. V8
+// can't measure this directly: its interpreter allocates for numbers that
+// QuickJS doesn't.
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'

@@ -27,7 +27,7 @@ import { LANE_TIME } from './game.js'
 import { LANE_PX, STRAIGHT } from './projection.js'
 import { BACK, FRONT, POPUP_Y, V_RACE, V_RESULTS, V_TITLE } from './scene.js'
 
-// Page layout, in screen pixels (see the spec's Screen layout).
+// Page layout, in screen pixels.
 export const LAYOUT = {
   city: { top: 80 },
   car: { left: 144, top: 330 }, // the car group: the car itself at y 360-440

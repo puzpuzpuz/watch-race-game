@@ -14,7 +14,7 @@ The car drives forward on its own. Tap the left or right half of the screen to m
 
 Every run is a new road, generated as you drive from a random seed, with fairness rules so there's always a way through.
 
-The sprites and backgrounds were made with [PixelLab](https://www.pixellab.ai/), an AI pixel-art generator, and cleaned up by the art scripts, which also draw the road, the HUD, the logo and the title screen; [Art](#art) explains how. `art.jpg` is the concept art the look follows, and [SPEC.md](SPEC.md) is the full game design, including the rendering measurements the design is built on.
+The sprites and backgrounds were made with [PixelLab](https://www.pixellab.ai/), an AI pixel-art generator, and cleaned up by the art scripts, which also draw the road, the HUD, the logo and the title screen; [Art](#art) explains how.
 
 ## Target platform
 
@@ -76,7 +76,7 @@ The heap check runs Node with `--jitless`: V8's optimizing compiler grows and sh
 
 `src/common/js/config.js` holds the build-time switches:
 
-- **`DEBUG`** (on in this version): shows frames per second and the longest frame of the last second during a race. The title screen also gets quarter circles of 60 to 140 px in each corner, to measure the screen's corner radius.
+- **`DEBUG`** (on in this version): shows frames per second and the longest frame of the last second during a race. The title screen also gets quarter circles of 60 to 140 px in each corner, to measure the screen's corner radius, and shows the last tap's position under the build name.
 - **`STYLE_MODE`**: moved sprites take turns between two preallocated style objects. Set it to `'fresh'` if sprites stop moving on the watch.
 - **`PRELOAD`**: shows every road picture once on the loading screen, so the first race doesn't stutter.
 
@@ -89,9 +89,9 @@ npm run assets
 
 This runs `tools/sprites.py`, which draws every picture except the road, and `tools/road.py`, which draws the 42 road frames. The road frames use the camera constants in `src/common/js/projection.js`, so sprites placed by the game stand on the drawn road. After changing the camera, rerun it.
 
-Pictures are drawn at half resolution and doubled, which gives the 2x2 "fat pixels" of the art style. They're snapped to the palette in the spec, saved as 8-bit palette PNGs (4-bit for the smallest palettes) and recompressed losslessly with [oxipng](https://github.com/shssoichiro/oxipng), which takes about 15% off. Road objects are saved at 12 sizes, so the game never resizes a picture at run time.
+Pictures are drawn at half resolution and doubled, which gives the 2x2 "fat pixels" of the art style. They're snapped to the game's palette in `tools/common.py`, plus up to 24 extra shades per picture, saved as 8-bit palette PNGs (4-bit for the smallest palettes) and recompressed losslessly with [oxipng](https://github.com/shssoichiro/oxipng), which takes about 15% off. Road objects are saved at 12 sizes, so the game never resizes a picture at run time.
 
-Generator art lives in `art/raw/<name>.png`; a picture without a file there is drawn by the script instead. To replace one, save the new picture under the same name and run `npm run assets`. The script crops the picture and fits it to its frame, adds a dark outline where the picture lacks one, and makes the variant frames itself. Pixel art drawn at the frame's half-resolution size (the sizes below, halved) is used pixel for pixel, on a transparent background or flat magenta (#ff00ff). Larger painted art on magenta is keyed and shrunk to fit. SPEC.md has a prompt for each picture under Sprite production.
+Generator art lives in `art/raw/<name>.png`; a picture without a file there is drawn by the script instead. To replace one, save the new picture under the same name and run `npm run assets`. The script crops the picture and fits it to its frame, adds a dark outline where the picture lacks one, and makes the variant frames itself. Pixel art drawn at the frame's half-resolution size (the sizes below, halved) is used pixel for pixel, on a transparent background or flat magenta (#ff00ff). Larger painted art on magenta is keyed and shrunk to fit.
 
 | File in `art/raw/` | Becomes | Frames the script adds |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ Words on signs are lettered at a fixed point on the picture (`letter()` calls in
 
 The pictures in `art/raw/` were made with PixelLab from Claude Code, through PixelLab's [MCP server](https://www.pixellab.ai/mcp):
 
-- **Models:** the fast Pixen and PixFlux models, at 1 generation per picture. Each was generated at its frame's half-resolution size with a transparent background, from SPEC.md's prompts.
+- **Models:** the fast Pixen and PixFlux models, at 1 generation per picture. Each was generated at its frame's half-resolution size with a transparent background, from a one-line description of the subject.
 - **Rival cars:** the taxi started from the player's car, recoloured yellow (PixFlux image-to-image), which kept the straight rear view. The van started from an earlier, narrower van. With a facing direction set, Pixen drew the cars at an angle.
 - **Crash frame:** an edit of the car picture (Pixen edit).
 - **Touch-ups:**
@@ -146,28 +146,18 @@ harness/                 the desktop harness
 test/                    Node test suites
 art/raw/                 generator art goes here
 docs/                    README pictures
-SPEC.md                  the game design
-art.jpg                  the concept art
 ```
 
 The game logic is plain JavaScript with no watch-specific imports. That's what lets the harness and the Node tests run the same code as the watch.
 
-## Where this version differs from SPEC.md
+## Design notes
 
-- **Camera height 1,050 instead of 1,000.** The spec asks for the camera to be tuned until the road is 400 px wide at the car. That puts the lanes 133 px apart, matching the spec's lane positions.
-- **The skyline strip is 1,296 px wide, not 864.** The strip is a tile followed by its mirror image, which repeats every 864 px. To show any 432 px stretch of that loop, the picture needs the tile once more at the end.
-- **The start gantry is 432x264 at 3 sizes, not 432x144 at 12.** It has to be taller than the camera to pass over the car rather than slide down the screen. It's only ever seen near the start line, so the smaller sizes would go unused.
-- **A few extra pictures:** a blank digit, and the words +1000 (a repair kit at full lives) and DISTANCE (results screen).
-- **Hand-made pixel fonts** in `tools/common.py` instead of the Press Start 2P font, so the art scripts need no font files.
-- **OUT OF GAS shows as soon as the tank is empty,** while the car coasts to a stop. It disappears if a gas can is collected in time.
-- **Spun-out rival cars don't puff smoke.** It would take another moving element, and the frame budget has none to spare.
-- **Palms stand 2.3 road half-widths from the centre, not 1.6, with billboards and lifeguard towers between them and the road.** The palms are part of the road pictures, so every sprite is drawn over them. Scenery beyond the palms would cover nearer palms.
-- **Scenery waits for gentle bends.** Where the road bends hard (a curve of 4 or more) toward its side, far scenery would still slide behind nearer palms. So the track generator moves a billboard or tower on to the next gap between palms until the road bends gently toward it while it's 30 to 60 segments ahead.
-- **Rival cars are 128x112, not 128x80,** so the van can be as wide as the other cars and taller.
-- **Up to 24 colours beyond the palette per picture, not 8.** The generator art has up to 150 colours, and with 8 the taxi's yellow averaged into orange.
-- **Generator art is drawn at the frame size, not at 1,024 px.** A pixel-art generator draws at the game's own resolution, so the pixels are used as drawn.
-
-SPEC.md also refers to benchmark apps (`spike/`, `bench/` and others) that measured the watch's rendering. They aren't part of this repository; their results are recorded in the spec.
+- **Camera:** its height of 1,050 units makes the road 400 px wide at the car, which puts the lane centres 133 px apart, at x 83, 216 and 349.
+- **Palms and scenery:** the palms are part of the road pictures, so every sprite is drawn over them. They stand 2.3 road half-widths from the centre, with billboards and lifeguard towers between them and the road, since scenery beyond the palms would cover nearer ones.
+- **Scenery waits for gentle bends:** where the road bends hard (a curve of 4 or more) toward its side, far scenery would still slide behind nearer palms. The track generator moves a billboard or tower on to the next gap between palms until the road bends gently toward it while it's 30 to 60 segments ahead.
+- **Skyline:** the strip is a tile followed by its mirror image, which repeats every 864 px. To show any 432 px stretch of that loop, the picture is 1,296 px wide: the tile comes once more at the end.
+- **Start gantry:** at 432x264, it's taller than the camera, so it passes over the car rather than sliding down the screen. It's only seen near the start line, so it comes in 3 sizes instead of 12.
+- **Out of gas:** OUT OF GAS shows as soon as the tank is empty, while the car coasts to a stop, and disappears if a gas can is collected in time.
 
 ## License
 

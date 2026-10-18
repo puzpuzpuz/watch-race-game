@@ -1,5 +1,5 @@
-// The track generator's fairness rules and the sprite cap (see the spec's
-// Track generation), checked over 40 km of road for several seeds.
+// The track generator's fairness rules and the sprite cap (see
+// src/common/js/track.js), checked over 40 km of road for several seeds.
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import { BILLBOARD, BLOCK, GAS, LIFEGUARD, REPAIR, RIVAL, SEGS_PER_KM } from '../src/common/js/track.js'
 import { SEEDS, generate } from './helpers.mjs'
 
-// The spec's numbers, written out rather than imported from the generator.
+// The rules' numbers, written out rather than imported from the generator.
 const ROW_GAP = 14
 const TWO_GAP = 20
 const FIRST = 40
