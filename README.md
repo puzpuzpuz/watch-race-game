@@ -20,7 +20,7 @@ The sprites and backgrounds were made with [PixelLab](https://www.pixellab.ai/),
 
 - **Watch:** Xiaomi Redmi Watch 6: a 2.07" AMOLED touch screen, 432x514 pixels, 60 Hz.
 - **Software:** a Xiaomi Vela JS quick app (`.rpk`), built with Xiaomi's `aiot-toolkit` and sideloaded to the watch.
-- **Rendering:** the watch has no working canvas, and every element moved by script costs several milliseconds a frame. So the road is pre-drawn: 42 pictures (7 bends x 6 stripe positions), one swapped in each frame, with at most 4 moving sprites on top. Lane changes and other effects use the watch's native Folme animations. The game targets 25 fps.
+- **Rendering:** the watch has no working canvas, and every element moved by script costs several milliseconds a frame. So the road is pre-drawn: 42 pictures (7 bends x 6 stripe positions), one swapped in each frame, with at most 4 moving sprites on top. Lane changes and other effects use the watch's native Folme animations. The game targets 25 fps; [Optimizations](#optimizations) explains how it gets there.
 
 ## Building the .rpk
 
@@ -158,6 +158,57 @@ docs/                    README pictures
 ```
 
 The game logic is plain JavaScript with no watch-specific imports. That's what lets the harness and the Node tests run the same code as the watch.
+
+## Optimizations
+
+The watch can't draw much per frame. Benchmark apps run on a Redmi Watch 6 while designing the game measured what costs time:
+
+| Test on the watch | Result |
+| --- | --- |
+| The road drawn from 24 or 48 strips of elements | 2-4 fps |
+| A full-screen picture swapped every frame | No measurable cost |
+| Each element moved by script | 2-9 ms a frame |
+| Moving the skyline every frame / 4 times a second | About 10 ms / no measurable cost |
+| A style bound as an object instead of a string | About 40% cheaper |
+| 42 road pictures at half / full resolution | 69 / 30 fps: only the half-resolution set stays in memory |
+| The tuned race screen with 4 / 6 objects | 24.6 / 20.4 fps |
+
+At 25 fps a frame has 40 ms, and every change makes the watch redraw what it covers. So the game moves as little as it can, as rarely as it can.
+
+### Drawing
+
+- **Pre-drawn road:** the road is 42 pictures, one for each curve level (7) and stripe position (6). The game swaps in the right one; nothing on the road is drawn at run time.
+- **Half resolution:** the road pictures are 216x162, shown at 2x. That gives the art's 2x2 pixels at a quarter of the memory, which keeps all 42 in memory.
+- **Palms baked in:** the palms are part of the road pictures, so they cost nothing at run time.
+- **At most 4 sprites:** road objects are drawn by a fixed pool of 6 elements, 4 behind the car and 2 in front. The track generator never puts more than 4 objects on screen.
+- **No resizing:** each road object is pre-drawn at up to 12 sizes, 0.75x apart. The game picks a size by swapping the picture and never sets width or height, the slowest change on the bench.
+- **Native animations:** lane changes, the hit jolt, the edge wiggle and pickup popups are Folme animations, which run outside the game loop.
+- **Preloading:** the loading screen shows every road picture once, hidden, so the first race doesn't stutter while they load.
+
+### Fewer updates
+
+- **Only changes are written:** the renderer writes a page binding only when its value changes, with styles bound as objects and positions in whole pixels.
+- **Slow parts change slowly:** the HUD numbers and the skyline change at most 4 times a second, the skyline catching up in steps. The flames, smoke, sparkles and blinks switch every 150-250 ms. The sky never moves.
+- **Idle screens:** the title, results and pause screens run the loop every 100 ms instead of 40, and the loop stops while the app is hidden.
+
+### Memory and garbage collection
+
+The watch's JavaScript engine, QuickJS, pauses to collect garbage, and a pause shows as a stutter. So a race frame allocates nothing:
+
+- **Typed arrays:** the road's 400-segment ring buffer and the 64-object pool are typed arrays, one per field, instead of arrays of small objects.
+- **Strings from tables:** every picture path and every `'<n>px'` string from -512 to 1,024 is built once at load. Per-frame code picks from these tables.
+- **Reused objects:** each sprite takes turns between two preallocated `{left, top}` style objects. The page updates a binding only when it gets a different object, so two are enough.
+- **Two small exceptions:** a new Folme request object for each animation (the watch's Folme doesn't animate one it has already run), and the save string when a run sets a new best.
+- **Checked by tests:** `test/framepath.test.mjs` scans every function a race frame runs for allocating code, and `test/alloc.test.mjs` fails if 5,000 race frames grow the heap by more than 64 KB.
+
+### Game loop
+
+- **Timer:** the watch has no `requestAnimationFrame`, so the loop is a `setTimeout` chain aiming at 40 ms. The game advances by the real elapsed time, capped at 100 ms after a stall.
+- **No skipped hits:** hit tests sweep every object the car passed since the last frame, so a slow frame can't jump over a road block.
+
+### Package size
+
+The pictures are 8-bit palette PNGs (4-bit for the smallest palettes), recompressed losslessly with oxipng. The release `.rpk`, with 292 pictures, is 340 KB.
 
 ## Design notes
 
