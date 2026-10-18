@@ -1,6 +1,6 @@
 <template>
   <!-- The watch has no z-index: page order is drawing order. -->
-  <stack class="page">
+  <stack class="page" ontouchstart="tapPage">
     <image class="sky" src="/common/assets/bg/bg_sky.png"></image>
     <image class="city" src="/common/assets/bg/bg_city.png" style="{{cityStyle}}"></image>
     <image id="road" class="road" src="{{roadSrc}}"></image>
@@ -63,8 +63,9 @@
 
     <text if="{{debug && view === 'race'}}" class="fps">{{fpsText}}</text>
 
-    <!-- Every tap lands here, on top of everything. -->
-    <div class="catch" ontouchstart="onTouch"></div>
+    <!-- Taps land here, on top of everything, unless a block shown by `if`
+         ends up above it; then they bubble up to the page instead. -->
+    <div class="catch" ontouchstart="tapLayer"></div>
   </stack>
 </template>
 
@@ -111,6 +112,26 @@ function keepScreenOn(on) {
   }
 }
 
+// The first touch point's position: clientX and clientY of changedTouches as
+// documented, falling back to touches, the event itself and other names.
+const POINT_KEYS = [['clientX', 'clientY'], ['pageX', 'pageY'], ['globalX', 'globalY'], ['localX', 'localY'], ['x', 'y']]
+
+function touchPoint(evt) {
+  if (!evt) return null
+  const candidates = [first(evt.changedTouches), first(evt.touches), evt]
+  for (const t of candidates) {
+    if (!t) continue
+    for (const [kx, ky] of POINT_KEYS) {
+      if (typeof t[kx] === 'number' && typeof t[ky] === 'number') return { x: t[kx], y: t[ky] }
+    }
+  }
+  return null
+}
+
+function first(list) {
+  return (list && list[0]) || null
+}
+
 export default {
   private: Object.assign(initialData(), { debug: DEBUG, build: BUILD }),
 
@@ -142,11 +163,30 @@ export default {
     this.runner.destroy()
   },
 
-  // touchstart fires earlier than click, which matters for dodging.
-  onTouch(evt) {
-    const list = evt && (evt.changedTouches || evt.touches)
-    const t = (list && list[0]) || evt
-    if (t && typeof t.clientX === 'number') this.runner.touch(t.clientX, t.clientY)
+  // touchstart fires earlier than click, which matters for dodging. The tap
+  // layer and the page both listen, so a tap counts whichever element the
+  // watch delivers it to; when both see it, the second call is dropped.
+  tapLayer(evt) {
+    this.tapped(evt, 'layer')
+  },
+
+  tapPage(evt) {
+    this.tapped(evt, 'page')
+  },
+
+  tapped(evt, via) {
+    const p = touchPoint(evt)
+    // Without a position the tap still starts a run; in a race it steers left.
+    const x = p ? Math.round(p.x) : -1
+    const y = p ? Math.round(p.y) : -1
+    const now = Date.now()
+    if (now - this.tapAt < 80 && x === this.tapX && y === this.tapY) return
+    this.tapAt = now
+    this.tapX = x
+    this.tapY = y
+    this.runner.touch(x, y)
+    // Debug builds show the last tap under the build name on the title.
+    if (DEBUG) this.build = BUILD + ' tap ' + (p ? x + ',' + y : '?') + ' ' + via
   }
 }
 </script>
