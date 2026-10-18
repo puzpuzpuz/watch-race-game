@@ -41,6 +41,7 @@ export const LAYOUT = {
   resScore: { left: 166, top: 184, step: 17 },
   resDist: { lefts: [162, 178, 194, 206, 222], top: 254 },
   resBest: { left: 166, top: 324, step: 17 },
+  resBestDist: { lefts: [162, 178, 194, 206, 222], top: 352 },
   resHead: { top: 72 },
 }
 
@@ -157,6 +158,8 @@ export function initialData() {
     resScore: [],
     resDist: [],
     resBest: [],
+    resBestDist: [],
+    resBestKmOn: false,
     newBest: false,
     newBestOn: false,
     fpsText: '',
@@ -186,6 +189,7 @@ export class Renderer {
     vm.resScore = row('rs', 6, DIGIT[0], LAYOUT.resScore)
     vm.resDist = row('rd', 5, BLANK, LAYOUT.resDist)
     vm.resBest = row('rb', 6, DIGIT[0], LAYOUT.resBest)
+    vm.resBestDist = row('rbd', 5, BLANK, LAYOUT.resBestDist)
     // Read the lists back: the page may hand out observed copies.
     this.items = {
       back: vm.back,
@@ -199,6 +203,7 @@ export class Renderer {
       resScore: vm.resScore,
       resDist: vm.resDist,
       resBest: vm.resBest,
+      resBestDist: vm.resBestDist,
     }
     this.shown = {}
     for (const key in this.items) {
@@ -231,6 +236,7 @@ export class Renderer {
     this.headOn = vm.headOn
     this.headStyles = new Styles(this.fresh)
     this.tapOn = vm.tapOn
+    this.resBestKmOn = vm.resBestKmOn
     this.newBest = vm.newBest
     this.newBestOn = vm.newBestOn
     this.resHeadSrc = ''
@@ -329,6 +335,11 @@ export class Renderer {
     this.list('resScore', s.resScore)
     this.list('resDist', s.resDist)
     this.list('resBest', s.best)
+    this.list('resBestDist', s.resBestDist)
+    if (s.resBestKmOn !== this.resBestKmOn) {
+      this.resBestKmOn = s.resBestKmOn
+      vm.resBestKmOn = s.resBestKmOn
+    }
     if (s.newBest !== this.newBest) {
       this.newBest = s.newBest
       vm.newBest = s.newBest

@@ -105,6 +105,8 @@ list('resDist', E.results)
 el('img', 'hud res-km', E.results, A + 'hud/words_km.png')
 el('img', 'hud res-best', E.results, A + 'hud/words_best.png')
 list('resBest', E.results)
+list('resBestDist', E.results)
+E.resBestKm = el('img', 'hud res-best-km', E.results, A + 'hud/words_km.png')
 E.resNew = el('img', 'hud res-new', E.results, A + 'hud/words_newbest.png')
 E.resTap = el('img', 'hud res-tap', E.results, A + 'hud/words_taptostart.png')
 
@@ -151,6 +153,7 @@ const LIST_CLASS = {
   resScore: 'digit',
   resDist: 'digit',
   resBest: 'digit',
+  resBestDist: 'digit',
 }
 
 const data = Object.assign(initialData(), { debug: DEBUG, build: 'harness' })
@@ -191,6 +194,7 @@ const SETTERS = {
   resHeadSrc: (v) => (E.resHead.src = v),
   resHeadStyle: (v) => place(E.resHead, v),
   newBestOn: (v) => show(E.resNew, v),
+  resBestKmOn: (v) => show(E.resBestKm, v),
   fpsText: (v) => (E.fps.textContent = v),
   debug(v) {
     show(E.corners, v)

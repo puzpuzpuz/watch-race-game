@@ -151,6 +151,8 @@ export class Scene {
     this.resHeadLeft = 0
     this.resScore = strings(6, DIGIT[0])
     this.resDist = strings(5, BLANK)
+    this.resBestDist = strings(5, BLANK) // the best run's distance, under BEST
+    this.resBestKmOn = false // hidden while that distance isn't known
     this.newBest = false
     this.blinkOn = true // NEW BEST blinks on the results screen
     this.tapOn = true // TAP TO START, blinking, once taps count
@@ -194,6 +196,9 @@ export class Scene {
       digits(this.resScore, 0, 6, g.score, false)
       distance(this.resDist, 0, g.km)
       digits(this.best, 0, 6, g.best, false)
+      this.resBestKmOn = g.bestTenths >= 0
+      if (this.resBestKmOn) distance(this.resBestDist, 0, g.bestTenths / 10)
+      else for (let i = 0; i < 5; i++) this.resBestDist[i] = BLANK
       this.newBest = g.newBest
     }
     // The last race frame stays underneath; freeze its HUD too.

@@ -18,6 +18,8 @@ import {
   WRECKED,
   targetKmh,
 } from '../src/common/js/game.js'
+import { initialData } from '../src/common/js/renderer.js'
+import { Runner } from '../src/common/js/runner.js'
 import { BLOCK, DEBRIS, DYING, FREE, GAS, LANE_X, LIVE, POOL, REPAIR, RIVAL } from '../src/common/js/track.js'
 
 const DT = 0.04
@@ -354,6 +356,7 @@ test('three hits: the crash plays 1 s, then WRECKED', () => {
   assert.ok(g.newBest)
   assert.ok(g.bestDirty)
   assert.equal(g.best, g.score)
+  assert.equal(g.bestTenths, Math.floor(g.km * 10 + 1e-6))
 })
 
 test('results ignore taps for 700 ms, then start a new run', () => {
@@ -373,11 +376,42 @@ test('results ignore taps for 700 ms, then start a new run', () => {
 test('a lower score is not a new best', () => {
   const g = racing()
   g.best = 1e6
+  g.bestTenths = 81
   g.fuel = 0.1
   run(g, 3)
   assert.equal(g.state, RESULTS)
   assert.ok(!g.newBest)
   assert.equal(g.best, 1e6)
+  assert.equal(g.bestTenths, 81)
+})
+
+test('the best score is saved with its distance, and older saves without one still load', () => {
+  const load = (value) => {
+    const saved = []
+    const runner = new Runner({
+      vm: initialData(),
+      folme: null,
+      loadBest: (done) => done(value),
+      saveBest: (s) => saved.push(s),
+      keepScreenOn() {},
+    })
+    runner.start()
+    runner.halt()
+    return { game: runner.game, runner, saved }
+  }
+  let { game, runner, saved } = load('32320 81')
+  assert.equal(game.best, 32320)
+  assert.equal(game.bestTenths, 81)
+  game.best = 40000
+  game.bestTenths = 95
+  runner.saveBest()
+  assert.deepEqual(saved, ['40000 95'])
+  ;({ game } = load('32320'))
+  assert.equal(game.best, 32320)
+  assert.equal(game.bestTenths, -1)
+  ;({ game } = load(null))
+  assert.equal(game.best, 0)
+  assert.equal(game.bestTenths, -1)
 })
 
 test('pause freezes the run; a tap resumes without steering', () => {

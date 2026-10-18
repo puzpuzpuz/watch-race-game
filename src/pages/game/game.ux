@@ -52,6 +52,8 @@
       <image class="hud res-km" src="/common/assets/hud/words_km.png"></image>
       <image class="hud res-best" src="/common/assets/hud/words_best.png"></image>
       <image for="{{resBest}}" tid="k" class="digit" src="{{$item.src}}" style="{{$item.s}}"></image>
+      <image for="{{resBestDist}}" tid="k" class="digit" src="{{$item.src}}" style="{{$item.s}}"></image>
+      <image class="hud res-best-km" src="/common/assets/hud/words_km.png" show="{{resBestKmOn}}"></image>
       <image class="hud res-new" src="/common/assets/hud/words_newbest.png" show="{{newBestOn}}"></image>
       <image class="hud res-tap" src="/common/assets/hud/words_taptostart.png" show="{{tapOn}}"></image>
     </block>
@@ -405,9 +407,15 @@ export default {
   top: 300px;
 }
 
+/* The best run's distance, under the best score. */
+.res-best-km {
+  left: 244px;
+  top: 354px;
+}
+
 .res-new {
   left: 166px;
-  top: 362px;
+  top: 392px;
 }
 
 .res-tap {

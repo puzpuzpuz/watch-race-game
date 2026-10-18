@@ -7,7 +7,9 @@
 //   vm            the page, or the harness's stand-in
 //   folme         @system.folme, or null
 //   loadBest(cb)  calls cb(string or null) with the saved best score
-//   saveBest(s)   saves it, as a string
+//   saveBest(s)   saves it, as a string: the score, then the best run's
+//                 distance in tenths of a km ('32320 81'). Older saves have
+//                 the score alone.
 //   keepScreenOn(on)
 // }
 
@@ -41,7 +43,9 @@ export class Runner {
   start() {
     this.renderer.init()
     this.host.loadBest((value) => {
-      this.game.setBest(parseInt(value, 10) || 0)
+      const parts = String(value || '').split(' ')
+      const tenths = parseInt(parts[1], 10)
+      this.game.setBest(parseInt(parts[0], 10) || 0, tenths >= 0 ? tenths : -1)
     })
     this.resume()
   }
@@ -94,10 +98,7 @@ export class Runner {
     this.scene.build(game)
     this.renderer.apply(this.scene)
 
-    if (game.bestDirty) {
-      game.bestDirty = false
-      this.host.saveBest(String(game.best))
-    }
+    if (game.bestDirty) this.saveBest()
     const racing = !game.paused && game.state >= COUNTDOWN && game.state <= CRASHING
     this.keepScreenOn(racing)
     if (DEBUG) this.stats(now, racing)
@@ -105,6 +106,13 @@ export class Runner {
     const fast = racing || game.state === LOAD
     const spent = Date.now() - now
     this.timer = setTimeout(this.tickFn, Math.max(1, (fast ? FRAME_MS : IDLE_MS) - spent))
+  }
+
+  // Once per run that sets a new best.
+  saveBest() {
+    const game = this.game
+    game.bestDirty = false
+    this.host.saveBest(game.best + ' ' + game.bestTenths)
   }
 
   keepScreenOn(on) {

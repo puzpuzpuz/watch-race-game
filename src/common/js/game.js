@@ -91,6 +91,7 @@ export class Game {
     this.time = 0
     this.paused = false
     this.best = 0
+    this.bestTenths = -1 // the best run's distance in tenths of a km; -1 if not saved
     this.bestDirty = false
     this.loaded = false // the best score has been read
     this.preload = PRELOAD ? 0 : LEVELS.length * PHASES // road frames shown on the loading screen
@@ -139,8 +140,9 @@ export class Game {
     this.laneSeq++
   }
 
-  setBest(best) {
+  setBest(best, tenths = -1) {
     this.best = best
+    this.bestTenths = tenths
     this.loaded = true
   }
 
@@ -459,6 +461,7 @@ export class Game {
     this.newBest = this.score > this.best
     if (this.newBest) {
       this.best = this.score
+      this.bestTenths = Math.floor(this.km * 10 + 1e-6)
       this.bestDirty = true
     }
     this.setState(RESULTS)

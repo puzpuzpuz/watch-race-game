@@ -10,7 +10,7 @@ The car drives forward on its own. Tap the left or right half of the screen to m
 
 - **Dodge** road blocks and slower traffic: each hit costs one of your 3 lives. Overtaking a car scores a bonus.
 - **Collect** gas cans to keep the tank from running dry, and repair kits to win back a life.
-- **Go far:** the road never ends, and it gets faster and busier with every kilometre. The run ends when you're out of lives or out of gas, and the best score is kept.
+- **Go far:** the road never ends, and it gets faster and busier with every kilometre. The run ends when you're out of lives or out of gas, and the best score is kept, along with how far that run went.
 
 Every run is a new road, generated as you drive from a random seed, with fairness rules so there's always a way through.
 

@@ -31,7 +31,8 @@ const FORBIDDEN = [
 
 // Methods that a race frame runs. Left out on purpose: constructors and
 // init(), Styles.at (its 'fresh' fallback allocates by design), the debug
-// fps readout, which builds one string a second, and renderer.js's folmeReq(),
+// fps readout, which builds one string a second, Runner.saveBest(), which
+// builds one string when a run sets a new best, and renderer.js's folmeReq(),
 // which builds a new request for each Folme move (a few per lane change, hit
 // or pickup), since reusing one left the car stuck on the watch.
 const FRAME_PATH = {
