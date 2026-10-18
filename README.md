@@ -33,13 +33,21 @@ npm install
 npm run build
 ```
 
-This writes `dist/com.miamirush.game.release.0.1.0.rpk`, which installs on the watch as **Miami Rush**. It's the release build (`aiot release --enable-jsc`): compiled to bytecode and signed with your own key.
+This writes `dist/com.miamirush.game.release.1.0.0.rpk`, which installs on the watch as **Miami Rush**. It's the release build (`aiot release --enable-jsc`): compiled to bytecode and signed with your own key.
 
 - **Signing:** the key pair lives in `sign/` (`private.pem` and `certificate.pem`), which is git-ignored. The first release build creates a self-signed pair with OpenSSL if there is none. Keep it: the watch may refuse an update signed with a different key.
-- **Debug build:** `npm run build:debug` writes `dist/com.miamirush.gamedebug.debug.0.1.0.rpk` ("Miami Rush dbg"): plain JavaScript with the toolkit's debug signature. The two packages have different names, so both can be installed at once.
-- **Installing:** sideload the `.rpk` with Mi Fitness or AstroBox.
+- **Debug build:** `npm run build:debug` writes `dist/com.miamirush.gamedebug.debug.1.0.0.rpk` ("Miami Rush dbg"): plain JavaScript with the toolkit's debug signature. The two packages have different names, so both can be installed at once.
 
 `scripts/build.js` runs the toolkit for each variant. It sets the package name in `src/manifest.json` for the build and restores it afterwards. Set `AIOT` to use an `aiot` other than the one in `node_modules`.
+
+## Installing on the watch
+
+The easiest way to install a third-party app on the watch is the Notify for Xiaomi phone app:
+
+1. Copy the `.rpk` to your phone.
+2. In Notify for Xiaomi, go to **Device → Third Party App** and install the `.rpk` from there.
+
+AstroBox can sideload it too. To update the game, install the new `.rpk` the same way.
 
 ## Development
 

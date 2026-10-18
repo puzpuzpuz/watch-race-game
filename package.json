@@ -1,6 +1,6 @@
 {
   "name": "miami-rush",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Miami Rush: an endless pseudo-3D racer for the Redmi Watch 6",
   "license": "Apache-2.0",
