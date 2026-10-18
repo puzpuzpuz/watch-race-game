@@ -64,7 +64,7 @@ npm test
 
 | File | What it checks |
 | --- | --- |
-| `test/track.test.mjs` | The road generator's fairness rules over 40 km for 9 seeds: rows of objects at least 14 segments apart, never all three lanes blocked, room after two-lane blocks, lanes kept clear around rival cars, gas cans at most 360 segments apart, at most 4 objects on screen, and curve shapes. Also that a seed always builds the same road. |
+| `test/track.test.mjs` | The road generator's fairness rules over 40 km for 9 seeds: rows of objects at least 14 segments apart, never all three lanes blocked, room after two-lane blocks, lanes kept clear around rival cars, gas cans at most 360 segments apart, at most 4 objects on screen, scenery kept off hard bends toward its side, and curve shapes. Also that a seed always builds the same road. |
 | `test/fuel.test.mjs` | A player who collects every gas can keeps the tank up early on and runs dry between 18 and 40 km, so endless runs end. |
 | `test/game.test.mjs` | Game rules: countdown and acceleration, lane changes and tap buffering, boost, scoring, hits, pickups, rival cars, running out of gas, crashing, results, best score and pause. |
 | `test/alloc.test.mjs` | 5,000 race frames grow the heap by less than 64 KB, since garbage collection pauses show as stutter on the watch. |
@@ -161,6 +161,8 @@ The game logic is plain JavaScript with no watch-specific imports. That's what l
 - **Hand-made pixel fonts** in `tools/common.py` instead of the Press Start 2P font, so the art scripts need no font files.
 - **OUT OF GAS shows as soon as the tank is empty,** while the car coasts to a stop. It disappears if a gas can is collected in time.
 - **Spun-out rival cars don't puff smoke.** It would take another moving element, and the frame budget has none to spare.
+- **Palms stand 2.3 road half-widths from the centre, not 1.6, with billboards and lifeguard towers between them and the road.** The palms are part of the road pictures, so every sprite is drawn over them. Scenery beyond the palms would cover nearer palms.
+- **Scenery waits for gentle bends.** Where the road bends hard (a curve of 4 or more) toward its side, far scenery would still slide behind nearer palms. So the track generator moves a billboard or tower on to the next gap between palms until the road bends gently toward it while it's 30 to 60 segments ahead.
 - **Rival cars are 128x112, not 128x80,** so the van can be as wide as the other cars and taller.
 - **Up to 24 colours beyond the palette per picture, not 8.** The generator art has up to 150 colours, and with 8 the taxi's yellow averaged into orange.
 - **Generator art is drawn at the frame size, not at 1,024 px.** A pixel-art generator draws at the game's own resolution, so the pixels are used as drawn.

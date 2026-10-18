@@ -66,8 +66,6 @@ const RIVAL_SPEED = 0.3 // of the player's speed, boost not counted
 const START_TIME = 2 // 0 to 150 km/h
 export const COUNT_TIME = 3 // 3, 2, 1, then GO!
 const SKY_DRIFT = 0.6 // skyline px per curve unit per segment driven
-const CURVE_FROM = 2 // the road picture follows the mean curve over these
-const CURVE_SPAN = 20 // segments ahead of the camera
 
 // Taps: the boost zone in the bottom-right corner, then left or right half.
 export const BOOST_X = 256
@@ -256,14 +254,9 @@ export class Game {
     }
 
     this.track.ensure(seg)
-    const view = Math.floor(this.pos)
-    const curve = this.track.meanCurve(view + CURVE_FROM, CURVE_SPAN)
-    let level = STRAIGHT + Math.round(curve / 2)
-    if (level < 0) level = 0
-    else if (level >= LEVELS.length) level = LEVELS.length - 1
-    this.level = level
+    this.level = this.track.levelAt(Math.floor(this.pos))
     // A left curve slides the skyline right, so the world seems to turn.
-    this.skyX += LEVELS[level] * (this.pos - prev) * SKY_DRIFT
+    this.skyX += LEVELS[this.level] * (this.pos - prev) * SKY_DRIFT
 
     this.stepObjects(dt, prev)
 

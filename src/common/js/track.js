@@ -6,7 +6,7 @@
 // allocates after construction.
 
 import { Rng } from './rng.js'
-import { LANE_W } from './projection.js'
+import { DRAW, LANE_W, LEVELS, STRAIGHT as LEVEL_STRAIGHT } from './projection.js'
 
 export const RING = 400
 export const CHUNK = 200
@@ -35,9 +35,14 @@ export const MOVING = 1
 export const PASSED = 2
 
 export const LANE_X = [-LANE_W, 0, LANE_W]
-export const BILLBOARD_X = -2200
-export const LIFEGUARD_X = 2100
+// Scenery stands between the rumble strips and the palms. Beyond the palms,
+// its sprite would cover nearer palms, which the road pictures draw beneath it.
+export const BILLBOARD_X = -1620
+export const LIFEGUARD_X = 1500
+const SCENERY_FAR = 30 // see sceneryClear()
 export const BANNER_SEG = 3 // the start gantry, just ahead of the car
+export const CURVE_FROM = 2 // the road picture follows the mean curve over these
+export const CURVE_SPAN = 20 // segments ahead of the camera
 
 // Fairness rules (see the spec's Track generation).
 export const CAP = 4 // objects on screen at once
@@ -164,6 +169,15 @@ export class Track {
     return sum / n
   }
 
+  // The road picture's curve level, an index into LEVELS, with the camera at
+  // segment `view`.
+  levelAt(view) {
+    const level = LEVEL_STRAIGHT + Math.round(this.meanCurve(view + CURVE_FROM, CURVE_SPAN) / 2)
+    if (level < 0) return 0
+    if (level >= LEVELS.length) return LEVELS.length - 1
+    return level
+  }
+
   chunk() {
     const from = this.end
     const to = from + CHUNK
@@ -179,8 +193,11 @@ export class Track {
     for (let s = from; s < to; s++) this.curve[ring(s)] = this.nextCurve()
     this.end = to
 
-    // Gas cans first: their spacing is what keeps a run going.
-    while (this.nextGas < to) this.placeGas(this.nextGas)
+    // Gas cans first: their spacing is what keeps a run going. They go SPILL
+    // segments into the next chunk as well: a can forced in there ignores the
+    // sprite cap, and its window reaches back over this chunk's rows, which
+    // must count it.
+    while (this.nextGas < to + SPILL) this.placeGas(this.nextGas)
     // Then everything else, in order along the road. A row that breaks a rule
     // moves forward a segment and tries again.
     for (;;) {
@@ -320,7 +337,14 @@ export class Track {
   }
 
   // Scenery never collides; when the sprite cap is reached, it's skipped.
+  // Where the road bends too hard toward it, it waits for the next gap
+  // between palms.
   placeScenery(kind, p) {
+    if (!this.sceneryClear(p, kind === BILLBOARD ? -1 : 1)) {
+      if (kind === BILLBOARD) this.nextBill = p + 6
+      else this.nextLife = p + 6
+      return
+    }
     if (p >= FIRST && this.capOk(p - CAP_SPAN + 1, p, 1)) {
       if (kind === BILLBOARD) this.spawn(BILLBOARD, p, -1, BILLBOARD_X, 0)
       else this.spawn(LIFEGUARD, p, 3, LIFEGUARD_X, 0)
@@ -332,6 +356,17 @@ export class Track {
   }
 
   // ------------------------------------------------------------ rule checks
+
+  // Whether scenery at p, on `side` (-1 left, 1 right), stays clear of the
+  // palms. On a road bent 4 or more toward its side, far scenery slides in
+  // behind nearer palms, from about SCENERY_FAR segments out; on gentler
+  // bends it never does. The curve up to p is known when p is placed.
+  sceneryClear(p, side) {
+    for (let v = p - DRAW; v <= p - SCENERY_FAR; v++) {
+      if (LEVELS[this.levelAt(v)] * side > 2) return false
+    }
+    return true
+  }
 
   // Any row within gap - 1 segments of p, other than p itself.
   rowsNear(p, gap) {

@@ -41,7 +41,7 @@ SAND_DARK = hexrgb("#e2cc92")
 WET_SAND = hexrgb("#d8c890")
 RUMBLE_W = 1.12 * ROAD_HALF  # rumble strips run outside the asphalt
 DASH_W = 26  # half-width of a lane dash, world units
-SHORE_X = 3000  # the sea starts this far right of the centre line
+SHORE_X = 3600  # the sea starts this far right of the centre line, past the palms
 
 # The colours of a daytime frame; the title art redraws the road at sunset.
 DAY = {

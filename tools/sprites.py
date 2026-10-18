@@ -15,7 +15,7 @@ import json
 import math
 import random
 
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter
 
 from common import (
     ASSETS,
@@ -578,28 +578,49 @@ def gauge_frames():
 
 
 def boost_frames():
-    """Ready, pressed, then 8 cooling steps that refill left to right."""
+    """Ready, pressed, then 8 cooling steps that refill left to right. A pill
+    at half resolution, lit along its top rim and shaded along its bottom one,
+    both following the curve; pressed, the two swap and the word sinks 1 px."""
     grey = hexrgb("#6a7080")
+    w, h = 52, 24
+    body = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(body).rounded_rectangle([1, 1, w - 2, h - 2], radius=h // 2 - 2, fill=255)
+    top = ImageChops.subtract(body, shifted(body, 2))
+    bottom = ImageChops.subtract(body, shifted(body, -2))
 
-    def pill(fill, fill_to=None, label=WHITE):
-        img, d = new(104, 48)
-        d.rounded_rectangle([0, 0, 103, 47], radius=23, fill=rgba(OUTLINE))
-        d.rounded_rectangle([2, 2, 101, 45], radius=21, fill=rgba(fill))
-        if fill_to is not None and fill_to > 0:
-            mask = Image.new("L", (104, 48), 0)
-            md = ImageDraw.Draw(mask)
-            md.rounded_rectangle([2, 2, 101, 45], radius=21, fill=255)
-            md.rectangle([2 + round(99 * fill_to), 0, 103, 47], fill=0)
-            img.paste(rgba(hexrgb("#a83a78")), (0, 0), mask)
-        d.rounded_rectangle([6, 5, 97, 9], radius=2, fill=rgba(WHITE if fill == PINK else grey))
-        word = text_image("BOOST", FONT_SMALL, cell=2, color=label, outline=2, bold=1)
-        img.paste(word, (52 - word.width // 2, 25 - word.height // 2), word)
-        return img
+    def pill(fill, fill_to=None, label=WHITE, pressed=False):
+        img, d = new(w, h)
+        d.rounded_rectangle([0, 0, w - 1, h - 1], radius=h // 2 - 1, fill=rgba(OUTLINE))
+        img.paste(rgba(fill), (0, 0), body)
+        if fill_to:
+            part = Image.new("L", (w, h), 0)
+            part.paste(body.crop((0, 0, 1 + round((w - 2) * fill_to), h)))
+            img.paste(rgba(hexrgb("#a83a78")), (0, 0), part)
+        light, dark = (bottom, top) if pressed else (top, bottom)
+        img = tint(img, light, WHITE, 0.4)
+        img = tint(img, dark, OUTLINE, 0.3)
+        if not pressed:
+            ImageDraw.Draw(img).point([(7, 3), (8, 3), (6, 4)], fill=rgba(WHITE))
+        word = text_image("BOOST", FONT_SMALL, cell=1, color=label, outline=1)
+        img.paste(word, ((w - word.width) // 2, (h - word.height) // 2 + pressed), word)
+        return fat(img)
 
-    frames = [pill(PINK), pill(hexrgb("#a8206c"), label=GREY_LIGHT)]
+    frames = [pill(PINK), pill(hexrgb("#a8206c"), label=GREY_LIGHT, pressed=True)]
     for n in range(8):
         frames.append(pill(grey, n / 8, GREY_LIGHT))
     return frames
+
+
+def shifted(mask, dy):
+    """`mask` moved down by `dy` px (up if negative), without wrapping."""
+    out = Image.new("L", mask.size, 0)
+    out.paste(mask, (0, dy))
+    return out
+
+
+def tint(img, mask, colour, amount):
+    """`img` blended `amount` of the way to `colour` where `mask` is set."""
+    return Image.composite(Image.blend(img, Image.new("RGBA", img.size, rgba(colour)), amount), img, mask)
 
 
 WORDS = {

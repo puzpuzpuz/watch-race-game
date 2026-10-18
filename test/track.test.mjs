@@ -153,6 +153,25 @@ test('rule 7: at most 4 objects on screen from any camera position', () => {
   }
 })
 
+test('scenery stands where the road bends gently toward it while it is 30-60 segments ahead', () => {
+  for (const { seed, objects, curve } of runs) {
+    // The road picture's curve with the camera at v: the mean over 20
+    // segments from v + 2, in steps of 2.
+    const level = (v) => {
+      let sum = 0
+      for (let s = v + 2; s < v + 22; s++) sum += s >= 0 ? curve[s] : 0
+      return 2 * Math.max(-3, Math.min(3, Math.round(sum / 20 / 2)))
+    }
+    for (const o of objects) {
+      if ((o.kind !== BILLBOARD && o.kind !== LIFEGUARD) || o.p > curve.length) continue
+      const side = o.kind === BILLBOARD ? -1 : 1
+      for (let v = o.p - 60; v <= o.p - 30; v++) {
+        assert.ok(level(v) * side <= 2, `seed ${seed}: kind ${o.kind} at ${o.p}, curve ${level(v)} from ${v}`)
+      }
+    }
+  }
+})
+
 test('gaps tighten with distance', () => {
   for (const { seed, objects } of runs) {
     const blocks = rows(objects).filter((r) => r.blocks.length)
