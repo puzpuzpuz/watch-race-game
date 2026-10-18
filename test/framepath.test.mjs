@@ -30,8 +30,10 @@ const FORBIDDEN = [
 ]
 
 // Methods that a race frame runs. Left out on purpose: constructors and
-// init(), Styles.at (its 'fresh' fallback allocates by design), and the debug
-// fps readout, which builds one string a second.
+// init(), Styles.at (its 'fresh' fallback allocates by design), the debug
+// fps readout, which builds one string a second, and renderer.js's folmeReq(),
+// which builds a new request for each Folme move (a few per lane change, hit
+// or pickup), since reusing one left the car stuck on the watch.
 const FRAME_PATH = {
   Game: [Game, ['update', 'tap', 'pause', 'setState', 'startRun', 'resetRun', 'stepRace', 'boostLevel', 'boost',
     'steer', 'startLane', 'stepLane', 'stepObjects', 'near', 'hitBlock', 'hitRival', 'hit', 'collect', 'popup',

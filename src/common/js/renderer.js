@@ -87,12 +87,20 @@ class Shown {
   }
 }
 
-function folmeReq(id, attr, value, duration, ease) {
+// One Folme move: element id, attribute, target value, seconds, easing.
+function move(id, attr, value, duration, ease) {
+  return { id: id, attr: attr, value: value, duration: duration, ease: ease }
+}
+
+// A new Folme request for a move, built for every call: on the watch, the car
+// stopped following lane changes once a lane's request object, made once and
+// reused, was sent a second time.
+function folmeReq(m) {
   const toState = {}
-  toState[attr] = value
-  const config = { duration: duration }
-  if (ease) config.ease = [ease, duration]
-  return { id: id, toState: toState, config: config }
+  toState[m.attr] = m.value
+  const config = { duration: m.duration }
+  if (m.ease) config.ease = [m.ease, m.duration]
+  return { id: m.id, toState: toState, config: config }
 }
 
 // A row of HUD pictures at fixed positions.
@@ -247,30 +255,30 @@ export class Renderer {
     this.snapReq = []
     for (let l = 0; l < 3; l++) {
       const x = px((l - 1) * LANE_PX)
-      this.laneReq.push(folmeReq('carg', 'translateX', x, LANE_TIME, ease))
-      this.snapReq.push(folmeReq('carg', 'translateX', x, 0.01))
+      this.laneReq.push(move('carg', 'translateX', x, LANE_TIME, ease))
+      this.snapReq.push(move('carg', 'translateX', x, 0.01))
     }
     this.joltRoad = []
     this.joltCar = []
     for (let i = 0; i < JOLT_AT.length; i++) {
-      this.joltRoad.push(folmeReq('road', 'translateY', px(JOLT_Y[i]), JOLT_MS[i]))
-      this.joltCar.push(folmeReq('carj', 'translateY', px(JOLT_Y[i]), JOLT_MS[i]))
+      this.joltRoad.push(move('road', 'translateY', px(JOLT_Y[i]), JOLT_MS[i]))
+      this.joltCar.push(move('carj', 'translateY', px(JOLT_Y[i]), JOLT_MS[i]))
     }
     this.wiggleReq = [[], []]
     for (let i = 0; i < WIGGLE_AT.length; i++) {
-      this.wiggleReq[0].push(folmeReq('carj', 'translateX', px(-WIGGLE_X[i]), 0.05))
-      this.wiggleReq[1].push(folmeReq('carj', 'translateX', px(WIGGLE_X[i]), 0.05))
+      this.wiggleReq[0].push(move('carj', 'translateX', px(-WIGGLE_X[i]), 0.05))
+      this.wiggleReq[1].push(move('carj', 'translateX', px(WIGGLE_X[i]), 0.05))
     }
-    this.popReset = folmeReq('popup', 'translateY', '0px', 0.01)
-    this.popRise = folmeReq('popup', 'translateY', px(-40), POPUP_RISE, ease)
-    this.popShow = folmeReq('popup', 'opacity', 1, 0.01)
-    this.popFade = folmeReq('popup', 'opacity', 0, POPUP_RISE)
+    this.popReset = move('popup', 'translateY', '0px', 0.01)
+    this.popRise = move('popup', 'translateY', px(-40), POPUP_RISE, ease)
+    this.popShow = move('popup', 'opacity', 1, 0.01)
+    this.popFade = move('popup', 'opacity', 0, POPUP_RISE)
   }
 
-  to(req) {
+  to(m) {
     if (!this.fx) return false
     try {
-      this.fx.to(req)
+      this.fx.to(folmeReq(m))
       return true
     } catch (e) {
       this.fxErrors++

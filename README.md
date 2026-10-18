@@ -67,6 +67,7 @@ npm test
 | `test/track.test.mjs` | The road generator's fairness rules over 40 km for 9 seeds: rows of objects at least 14 segments apart, never all three lanes blocked, room after two-lane blocks, lanes kept clear around rival cars, gas cans at most 360 segments apart, at most 4 objects on screen, scenery kept off hard bends toward its side, and curve shapes. Also that a seed always builds the same road. |
 | `test/fuel.test.mjs` | A player who collects every gas can keeps the tank up early on and runs dry between 18 and 40 km, so endless runs end. |
 | `test/game.test.mjs` | Game rules: countdown and acceleration, lane changes and tap buffering, boost, scoring, hits, pickups, rival cars, running out of gas, crashing, results, best score and pause. |
+| `test/renderer.test.mjs` | Every Folme animation is sent as a new request object, including a lane change back to a lane already visited, which left the car stuck on the watch when the object was reused. |
 | `test/alloc.test.mjs` | 5,000 race frames grow the heap by less than 64 KB, since garbage collection pauses show as stutter on the watch. |
 | `test/framepath.test.mjs` | Code that runs every frame allocates nothing: no object or array literals, closures, spread, template strings or string building. |
 
