@@ -14,7 +14,7 @@ The car drives forward on its own. Tap the left or right half of the screen to m
 
 Every run is a new road, generated as you drive from a random seed, with fairness rules so there's always a way through.
 
-This is the first version. All the art is placeholder art drawn by a script (`tools/sprites.py`), meant to be swapped for proper sprites; [Art](#art) explains how. `art.jpg` is the concept art the look follows, and [SPEC.md](SPEC.md) is the full game design, including the rendering measurements the design is built on.
+The sprites and backgrounds were made with [PixelLab](https://www.pixellab.ai/), an AI pixel-art generator, and cleaned up by the art scripts, which also draw the road, the HUD, the logo and the title screen; [Art](#art) explains how. `art.jpg` is the concept art the look follows, and [SPEC.md](SPEC.md) is the full game design, including the rendering measurements the design is built on.
 
 ## Target platform
 
@@ -90,7 +90,7 @@ This runs `tools/sprites.py`, which draws every picture except the road, and `to
 
 Pictures are drawn at half resolution and doubled, which gives the 2x2 "fat pixels" of the art style. They're snapped to the palette in the spec and saved as 8-bit palette PNGs. Road objects are saved at 12 sizes, so the game never resizes a picture at run time.
 
-To replace a placeholder, generate the picture on a flat magenta (#ff00ff) background, save it as `art/raw/<name>.png`, and run `npm run assets`. SPEC.md has the prompt for each picture under Sprite production. The script keys out the magenta, crops and fits the picture to its frame, and makes the variant frames itself.
+Generator art lives in `art/raw/<name>.png`; a picture without a file there is drawn by the script instead. To replace one, save the new picture under the same name and run `npm run assets`. The script crops the picture and fits it to its frame, adds a dark outline where the picture lacks one, and makes the variant frames itself. Pixel art drawn at the frame's half-resolution size (the sizes below, halved) is used pixel for pixel, on a transparent background or flat magenta (#ff00ff). Larger painted art on magenta is keyed and shrunk to fit. SPEC.md has a prompt for each picture under Sprite production.
 
 | File in `art/raw/` | Becomes | Frames the script adds |
 | --- | --- | --- |
@@ -98,7 +98,7 @@ To replace a placeholder, generate the picture on a flat magenta (#ff00ff) backg
 | `car_crash.png` | the crash frame | |
 | `flame.png` | exhaust flames, 48x24 | a mirrored second frame |
 | `debris.png` | a smashed road block, 96x64 | a mirrored second frame |
-| `rival_taxi.png`, `rival_convertible.png`, `rival_van.png` | rival cars, 128x80 | spun out: rotated 20° |
+| `rival_taxi.png`, `rival_convertible.png`, `rival_van.png` | rival cars, 128x112 | spun out: rotated 20° |
 | `block.png` | the road block, 160x96 | the word CLOSED on its sign |
 | `gas.png`, `repair.png` | pickups, 80x80 | a glint frame |
 | `billboard.png` | 192x144 | the word MIAMI |
@@ -109,7 +109,18 @@ To replace a placeholder, generate the picture on a flat magenta (#ff00ff) backg
 | `logo.png` | 360x120 | |
 | `title_bg.png`, `icon.png` | the title screen and the app icon, cropped to cover | the results screen: darkened and blurred |
 
-Words on signs are lettered at a fixed height on the picture (`letter()` in `tools/sprites.py`), which may need moving to fit the sign the generator drew.
+Words on signs are lettered at a fixed point on the picture (`letter()` calls in `tools/sprites.py`), which needs moving to fit the sign on a new picture.
+
+The pictures in `art/raw/` were made with PixelLab from Claude Code, through PixelLab's [MCP server](https://www.pixellab.ai/mcp):
+
+- **Models:** the fast Pixen and PixFlux models, at 1 generation per picture. Each was generated at its frame's half-resolution size with a transparent background, from SPEC.md's prompts.
+- **Rival cars:** the taxi started from the player's car, recoloured yellow (PixFlux image-to-image), which kept the straight rear view. The van started from an earlier, narrower van. With a facing direction set, Pixen drew the cars at an angle.
+- **Crash frame:** an edit of the car picture (Pixen edit).
+- **Touch-ups:**
+  - garbled letters on the taxi's plate and roof sign painted out;
+  - a street lamp and a strip of road erased from the billboard, and the road under the start gantry;
+  - the sky's dithered bands flattened to three colours.
+- **Still drawn by the script:** the logo, the exhaust flames, the title screen and the app icon. The title screen and icon are built from the game's own road, palms and car.
 
 ### Code layout
 
@@ -149,6 +160,9 @@ The game logic is plain JavaScript with no watch-specific imports. That's what l
 - **Hand-made pixel fonts** in `tools/common.py` instead of the Press Start 2P font, so the art scripts need no font files.
 - **OUT OF GAS shows as soon as the tank is empty,** while the car coasts to a stop. It disappears if a gas can is collected in time.
 - **Spun-out rival cars don't puff smoke.** It would take another moving element, and the frame budget has none to spare.
+- **Rival cars are 128x112, not 128x80,** so the van can be as wide as the other cars and taller.
+- **Up to 24 colours beyond the palette per picture, not 8.** The generator art has up to 150 colours, and with 8 the taxi's yellow averaged into orange.
+- **Generator art is drawn at the frame size, not at 1,024 px.** A pixel-art generator draws at the game's own resolution, so the pixels are used as drawn.
 
 SPEC.md also refers to benchmark apps (`spike/`, `bench/` and others) that measured the watch's rendering. They aren't part of this repository; their results are recorded in the spec.
 

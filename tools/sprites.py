@@ -50,6 +50,7 @@ from common import (
     from_raw,
     from_raw_full,
     hexrgb,
+    outline_missing,
     rgba,
     save_jpg,
     save_png,
@@ -59,6 +60,7 @@ from common import (
 from road import draw_road
 
 SIZE_STEP, SIZE_COUNT = 0.75, 12
+RIVAL = (64, 56)  # the rival cars' shared frame: tall enough for the van
 RED_LIGHT = hexrgb("#ff7a6e")
 TAIL = hexrgb("#ff2a3a")
 
@@ -77,8 +79,13 @@ def art(name, size, draw, anchor="bottom"):
     present, else the drawn placeholder. Outlined, not yet doubled."""
     raw = from_raw(name, size, anchor)
     if raw is not None:
-        return add_outline(raw, 1)
-    return add_outline(draw(), 1)
+        return outline_missing(raw)
+    img = draw()
+    if img.size != size:  # a placeholder drawn smaller than the frame
+        frame = Image.new("RGBA", size, CLEAR)
+        frame.paste(img, ((size[0] - img.width) // 2, size[1] - img.height))
+        img = frame
+    return add_outline(img, 1)
 
 
 def rotate(img, degrees, fit=True):
@@ -174,7 +181,7 @@ def draw_flame(variant):
 def flame_frames():
     raw = from_raw("flame", (24, 12), "centre")
     if raw is not None:
-        a = add_outline(raw, 1)
+        a = outline_missing(raw)
         return [fat(a), fat(a.transpose(Image.FLIP_LEFT_RIGHT))]
     return [fat(draw_flame(v)) for v in (0, 1)]
 
@@ -644,7 +651,7 @@ def draw_logo():
 
 def logo():
     raw = from_raw("logo", (180, 60), "centre")
-    return fat(add_outline(raw, 1) if raw is not None else draw_logo())
+    return fat(outline_missing(raw) if raw is not None else draw_logo())
 
 
 def sunset_scene(car):
@@ -737,25 +744,25 @@ def icon(car):
 # Road objects: art (one image per frame, full size), and width in world units.
 # A lane is 667 units; the player's car is about 720 wide.
 def objects():
-    taxi = art("rival_taxi", (64, 40), draw_taxi)
-    conv = art("rival_convertible", (64, 40), draw_convertible)
-    van = art("rival_van", (64, 40), draw_van)
+    taxi = art("rival_taxi", RIVAL, draw_taxi)
+    conv = art("rival_convertible", RIVAL, draw_convertible)
+    van = art("rival_van", RIVAL, draw_van)
     rivals = [taxi, conv, van]
     raw_debris = from_raw("debris", (48, 32))
     debris = (
-        [add_outline(raw_debris, 1), add_outline(raw_debris.transpose(Image.FLIP_LEFT_RIGHT), 1)]
+        [outline_missing(raw_debris), outline_missing(raw_debris.transpose(Image.FLIP_LEFT_RIGHT))]
         if raw_debris is not None
         else [add_outline(draw_debris(v), 1) for v in (0, 1)]
     )
     block = art("block", (80, 48), draw_block)
     if from_raw("block", (80, 48)) is not None:
-        block = letter(block, "CLOSED", 0.17)
+        block = letter(block, "CLOSED", (37, 9), outline=0)
     billboard = art("billboard", (96, 72), draw_billboard)
     if from_raw("billboard", (96, 72)) is not None:
-        billboard = letter(billboard, "MIAMI", 0.3)
+        billboard = letter(billboard, "MIAMI", (48, 33))
     banner = art("banner", (216, 132), draw_banner)
     if from_raw("banner", (216, 132)) is not None:
-        banner = letter(banner, "START", 0.14)
+        banner = letter(banner, "START", (110, 40))
     gas = art("gas", (40, 40), draw_gas)
     repair = art("repair", (40, 40), draw_repair)
     return {
@@ -771,11 +778,12 @@ def objects():
     }
 
 
-def letter(img, word, y_frac):
-    """Script lettering on generator art, whose signs are blank."""
-    t = text_image(word, FONT_SMALL, cell=1, outline=1)
+def letter(img, word, centre, outline=1):
+    """Script lettering on generator art, whose signs are blank: `word` centred
+    on `centre`, a half-resolution point on the sign the generator drew."""
+    t = text_image(word, FONT_SMALL, cell=1, outline=outline)
     out = img.copy()
-    out.paste(t, (img.width // 2 - t.width // 2, round(img.height * y_frac)), t)
+    out.paste(t, (centre[0] - t.width // 2, centre[1] - t.height // 2), t)
     return out
 
 
@@ -810,7 +818,7 @@ def main():
         sky = draw_sky()
     save_png(fat(sky), ASSETS / "bg" / "bg_sky.png")
     strip, period = city_strip()
-    save_png(strip, ASSETS / "bg" / "bg_city.png", extra=12)
+    save_png(strip, ASSETS / "bg" / "bg_city.png", extra=48)
     meta["cityPeriod"] = period
     meta["cityWidth"] = strip.width
 
@@ -832,14 +840,14 @@ def main():
         meta["headlines"][key] = [img.width, img.height]
 
     lg = logo()
-    save_png(lg, ASSETS / "screens" / "logo.png", extra=12)
+    save_png(lg, ASSETS / "screens" / "logo.png", extra=48)
     meta["logo"] = [lg.width, lg.height]
     title = sunset_scene(cars[0])
     save_jpg(title, ASSETS / "screens" / "title_bg.jpg")
     dark = ImageEnhance.Brightness(title.filter(ImageFilter.GaussianBlur(5))).enhance(0.45)
     save_jpg(dark, ASSETS / "screens" / "results_bg.jpg")
     save_png(corner_guides(), ASSETS / "screens" / "corners.png")
-    save_png(icon(cars[0]), ASSETS / "icon.png", extra=12)
+    save_png(icon(cars[0]), ASSETS / "icon.png", extra=48)
 
     write_meta(meta)
     print("sprites: done")

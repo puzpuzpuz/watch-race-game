@@ -12,7 +12,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "src" / "common" / "assets"
@@ -74,7 +74,7 @@ PINK = hexrgb("#ff3fa4")
 CYAN = hexrgb("#39e6ff")
 BASE = [SKY, WATER, SAND, ASPHALT_LIGHT, ASPHALT_DARK, WHITE, OUTLINE, RED_SHADE, RED, PALM, PINK, CYAN]
 
-# Extra shades the placeholder art uses; each picture may add up to 8.
+# Extra shades the placeholder art uses; each picture may add up to 24 (see save_png).
 YELLOW = hexrgb("#ffd23c")
 YELLOW_SHADE = hexrgb("#d89a14")
 ORANGE = hexrgb("#ff8a20")
@@ -242,6 +242,23 @@ def add_outline(img, width=1, color=OUTLINE):
     return out
 
 
+def outline_missing(img, color=OUTLINE, dark=80):
+    """A 1 px outline where generator art lacks one: paints `color` on
+    transparent pixels beside an edge pixel lighter than `dark`, so an outline
+    the art already has isn't doubled."""
+    alpha = img.getchannel("A").point(lambda a: 255 if a >= 128 else 0)
+    light = ImageChops.multiply(alpha, img.convert("L").point(lambda v: 255 if v > dark else 0))
+    ring = light.copy()
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):  # grow without diagonals
+        shifted = Image.new("L", img.size, 0)
+        shifted.paste(light, (dx, dy))
+        ring = ImageChops.lighter(ring, shifted)
+    ring.paste(0, (0, 0), alpha)
+    out = img.copy()
+    out.paste(rgba(color), (0, 0), ring)
+    return out
+
+
 def fat(img):
     """Doubles a half-resolution picture with nearest-neighbour: 2x2 fat pixels."""
     return img.resize((img.width * 2, img.height * 2), Image.NEAREST)
@@ -262,7 +279,11 @@ def key_magenta(img):
 def from_raw(name, size, anchor="bottom"):
     """Generator art for `name` from art/raw/<name>.png, keyed, cropped and fitted
     into `size` (half resolution), or None when there's no such file. World
-    sprites are anchored bottom-centre; others are centred."""
+    sprites are anchored bottom-centre; others are centred.
+
+    Pixel art drawn at about the frame's size keeps its pixels: it's used as
+    is, or scaled by a whole number when it fits twice over, or shrunk with
+    nearest-neighbour. Only big painted art is shrunk smoothly."""
     path = RAW / f"{name}.png"
     if not path.exists():
         return None
@@ -271,27 +292,37 @@ def from_raw(name, size, anchor="bottom"):
     if box:
         img = img.crop(box)
     w, h = size
-    scale = min((w - 2) / img.width, (h - 2) / img.height)
-    fitted = img.resize((max(1, round(img.width * scale)), max(1, round(img.height * scale))), Image.LANCZOS)
+    if img.width <= w and img.height <= h:
+        k = max(1, int(min((w - 2) / img.width, (h - 2) / img.height)))
+        fitted = img.resize((img.width * k, img.height * k), Image.NEAREST)
+    else:
+        scale = min((w - 2) / img.width, (h - 2) / img.height)
+        resample = Image.NEAREST if scale > 0.5 else Image.LANCZOS
+        fitted = img.resize((max(1, round(img.width * scale)), max(1, round(img.height * scale))), resample)
     alpha = fitted.getchannel("A").point(lambda a: 255 if a >= 128 else 0)
     fitted.putalpha(alpha)
     out = Image.new("RGBA", size, CLEAR)
     x = (w - fitted.width) // 2
-    y = h - 1 - fitted.height if anchor == "bottom" else (h - fitted.height) // 2
+    y = max(0, h - 1 - fitted.height) if anchor == "bottom" else (h - fitted.height) // 2
     out.paste(fitted, (x, y), fitted)
     return out
 
 
 def from_raw_full(name, size):
     """A full-frame picture (backgrounds, title art) from art/raw, scaled to
-    cover `size` and cropped centrally, or None."""
+    cover `size` and cropped centrally, or None. Pixel art smaller than `size`
+    is scaled up by a whole number, so its pixels stay square."""
     path = RAW / f"{name}.png"
     if not path.exists():
         return None
     img = Image.open(path).convert("RGBA")
     w, h = size
     scale = max(w / img.width, h / img.height)
-    img = img.resize((round(img.width * scale), round(img.height * scale)), Image.LANCZOS)
+    if scale >= 1:
+        k = math.ceil(scale)
+        img = img.resize((img.width * k, img.height * k), Image.NEAREST)
+    else:
+        img = img.resize((round(img.width * scale), round(img.height * scale)), Image.LANCZOS)
     x, y = (img.width - w) // 2, (img.height - h) // 2
     return img.crop((x, y, x + w, y + h))
 
@@ -331,7 +362,7 @@ def build_palette(img, extra):
     return list(BASE) + [tuple(pal[3 * i : 3 * i + 3]) for i in used]
 
 
-def save_png(img, path, extra=8):
+def save_png(img, path, extra=24):
     """Snaps `img` to the palette and saves it as an 8-bit palette PNG. Index 0
     is transparent and index 1 the half-transparent shadow tone."""
     img = img.convert("RGBA")
@@ -402,4 +433,4 @@ def draw_palm(lean):
 def palm_art(name, lean):
     """Generator art from art/raw if present, else the drawn placeholder."""
     raw = from_raw(name, (64, 128))
-    return add_outline(raw, 1) if raw else draw_palm(lean)
+    return outline_missing(raw) if raw is not None else draw_palm(lean)
